@@ -4,16 +4,14 @@
 	"description": "",
 	"main": "index.js",
 	"scripts": {
-		"start": "node --watch ./src/index.js",
-		"api:posts": "json-server ./mock/posts.json –watch -p 3001",
-		"api:comments": "json-server ./mock/comments.json –watch -p 3002",
-		"api:users": "json-server ./mock/users.json –watch -p 3003"
+		"start": "node --watch ./src/index.js"
 	},
 	"keywords": [],
 	"author": "",
 	"license": "ISC",
 	"dependencies": {
 		"fastify": "^4.27.0",
+		"opossum": "^8.1.4",
 		"undici": "^6.18.2"
 	}
 }
