@@ -12,17 +12,19 @@ class PostsController {
 	async getPosts() {
 		const posts = await postsService.getPosts();
 
-		const authorIds = new Set();
-		for (const post of posts) {
-			authorIds.add(post.authorId);
-		}
+		const resultsPromise = posts.map(async (post) => {
+			const user = await userService.getUser(post.authorId);
 
-		const users = await userService.getUsers([...authorIds]);
-		for (const post of posts) {
-			post.author = users.get(post.authorId);
-		}
+			return {
+				...post,
+				authorId: undefined,
+				author: user?.name,
+			};
+		});
 
-		return posts;
+		const result = await Promise.all(resultsPromise);
+
+		return result;
 	}
 
 	/**
@@ -30,29 +32,27 @@ class PostsController {
 	 */
 	async getPost(id) {
 		// Fetch Data
-		// console.time('request');
 		const [post, comments] = await Promise.all([
 			postsService.getPost(id),
 			commentsService.getComments(id),
 		]);
-		// console.timeEnd('request');
 
-		// Mount user id
-		const userIds = new Set([post.authorId]);
-		for (const comment of comments) {
-			userIds.add(comment.userId);
-		}
+		const postAuthor = await userService.getUser(post.authorId);
+		const commentsPromise = comments.map(async (comment) => {
+			const commentAuthor = await userService.getUser(comment.userId);
+			return {
+				...comment,
+				user: commentAuthor.id,
+				userId: undefined,
+			};
+		});
 
-		// Fetch users
-		const users = await userService.getUsers([...userIds]);
-
-		// Transform user data
-		post.authorName = users.get(post.authorId);
-		for (const comment of comments) {
-			comment.user = users.get(comment.userId);
-		}
-
-		return { ...post, comments };
+		return {
+			...post,
+			author: postAuthor.name,
+			authorId: undefined,
+			comments: await Promise.all(commentsPromise),
+		};
 	}
 }
 

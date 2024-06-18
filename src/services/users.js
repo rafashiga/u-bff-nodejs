@@ -1,5 +1,6 @@
 const CircuitBreaker = require('opossum');
 const Http = require('../utils/http');
+const redis = require('../utils/redis');
 
 class UsersService {
 	#client;
@@ -8,24 +9,28 @@ class UsersService {
 	constructor() {
 		this.#client = new Http('http://localhost:3003');
 		this.#cbGetUser = new CircuitBreaker(
-			async (ids) => {
+			async (id) => {
+				const key = `user${id}`;
+				const dataFromCache = await redis.get(key);
+				if (dataFromCache) return JSON.parse(dataFromCache);
+
 				const data = await this.#client.request(
 					{
 						method: 'GET',
-						path: `/users`,
-						query: {
-							id: ids,
-						},
+						path: `/users/${id}`,
 					},
 					{
 						timeout: 3000,
 					}
 				);
-				const users = new Map();
-				for (const user of data) {
-					users.set(Number(user.id), user.name);
-				}
-				return users;
+
+				const result = {
+					id: data.id,
+					name: data.name,
+				};
+
+				await redis.set(key, JSON.stringify(result), 'EX', 60);
+				return result;
 			},
 			{
 				timeout: 3000,
@@ -36,12 +41,10 @@ class UsersService {
 	}
 
 	/**
-	 *
-	 * @param {number[]} ids
-	 * @returns
+	 * @param {number} id
 	 */
-	async getUsers(ids) {
-		return this.#cbGetUser.fire(ids);
+	async getUser(id) {
+		return this.#cbGetUser.fire(id);
 	}
 }
 

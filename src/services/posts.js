@@ -32,7 +32,6 @@ class PostsService {
 					posts.push({
 						id: post.id,
 						title: post.title,
-						text: post.text,
 						authorId: post.authorId,
 					});
 				}
@@ -91,7 +90,7 @@ class PostsService {
 	 * @param {number} limit
 	 * @returns
 	 */
-	async getPosts(limit = 2) {
+	async getPosts(limit = 5) {
 		return this.#cbGetPosts.fire(limit);
 	}
 
