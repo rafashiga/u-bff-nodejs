@@ -11,6 +11,12 @@ class PostsService {
 		this.#client = new Http('http://localhost:3001');
 		this.#cbGetPosts = new CircuitBreaker(
 			async (limit) => {
+				const key = `posts:${limit}`;
+				const dataFromCache = await redis.get(key);
+				if (dataFromCache) {
+					return JSON.parse(dataFromCache);
+				}
+
 				const data = await this.#client.request(
 					{
 						method: 'GET',
@@ -30,6 +36,8 @@ class PostsService {
 						authorId: post.authorId,
 					});
 				}
+
+				await redis.set(key, JSON.stringify(posts), 'EX', 60);
 				return posts;
 			},
 			{
@@ -41,8 +49,8 @@ class PostsService {
 
 		this.#cbGetPost = new CircuitBreaker(
 			async (id) => {
+				//key - redis
 				const key = `posts:${id}`;
-
 				const dataFromCache = await redis.get(key);
 				console.log({ key, dataFromCache });
 				if (dataFromCache) {
