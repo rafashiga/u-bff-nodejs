@@ -11,6 +11,7 @@ class UsersService {
 		this.#cbGetUser = new CircuitBreaker(
 			async (id) => {
 				const key = `user${id}`;
+				const staleKey = `user${id}`;
 				const dataFromCache = await redis.get(key);
 				if (dataFromCache) return JSON.parse(dataFromCache);
 
@@ -29,7 +30,12 @@ class UsersService {
 					name: data.name,
 				};
 
-				await redis.set(key, JSON.stringify(result), 'EX', 60);
+				await redis
+					.pipeline()
+					.set(key, JSON.stringify(result), 'EX', 60)
+					.set(staleKey, JSON.stringify(result), 'EX', 6000)
+					.exec();
+
 				return result;
 			},
 			{
@@ -37,7 +43,12 @@ class UsersService {
 				errorThresholdPercentage: 50,
 			}
 		);
-		this.#cbGetUser.fallback(() => {});
+		this.#cbGetUser.fallback(async (id) => {
+			const staleKey = `user${id}`;
+			const dataFromCache = await redis.get(staleKey);
+			if (dataFromCache) return JSON.parse(dataFromCache);
+			return {};
+		});
 	}
 
 	/**

@@ -12,6 +12,9 @@ class PostsService {
 		this.#cbGetPosts = new CircuitBreaker(
 			async (limit) => {
 				const key = `posts:${limit}`;
+				// stale cache
+				const staleKey = `posts-stale:${limit}`;
+
 				const dataFromCache = await redis.get(key);
 				if (dataFromCache) {
 					return JSON.parse(dataFromCache);
@@ -36,7 +39,12 @@ class PostsService {
 					});
 				}
 
-				await redis.set(key, JSON.stringify(posts), 'EX', 60);
+				await redis
+					.pipeline()
+					.set(key, JSON.stringify(posts), 'EX', 60)
+					.set(staleKey, JSON.stringify(posts), 'EX', 6000)
+					.exec();
+
 				return posts;
 			},
 			{
@@ -44,12 +52,23 @@ class PostsService {
 				errorThresholdPercentage: 90,
 			}
 		);
-		this.#cbGetPosts.fallback(() => []);
+		this.#cbGetPosts.fallback(async (limit) => {
+			const staleKey = `posts-stale:${limit}`;
+
+			const dataFromCache = await redis.get(staleKey);
+			if (dataFromCache) {
+				return JSON.parse(dataFromCache);
+			}
+
+			return [];
+		});
 
 		this.#cbGetPost = new CircuitBreaker(
 			async (id) => {
 				//key - redis
-				const key = `posts:${id}`;
+				const key = `post:${id}`;
+				const staleKey = `post-stale:${id}`;
+
 				const dataFromCache = await redis.get(key);
 				console.log({ key, dataFromCache });
 				if (dataFromCache) {
@@ -74,7 +93,13 @@ class PostsService {
 				};
 
 				console.log('writing cache');
-				await redis.set(key, JSON.stringify(result), 'EX', 60);
+
+				await redis
+					.pipeline()
+					.set(key, JSON.stringify(result), 'EX', 60)
+					.set(staleKey, JSON.stringify(result), 'EX', 6000)
+					.exec();
+
 				return result;
 			},
 			{
@@ -82,7 +107,16 @@ class PostsService {
 				errorThresholdPercentage: 90,
 			}
 		);
-		this.#cbGetPost.fallback(() => ({}));
+		this.#cbGetPost.fallback(async (id) => {
+			const staleKey = `post-stale:${id}`;
+
+			const dataFromCache = await redis.get(staleKey);
+			if (dataFromCache) {
+				return JSON.parse(dataFromCache);
+			}
+
+			return {};
+		});
 	}
 
 	/**

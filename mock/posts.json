@@ -1,6 +1,12 @@
 {
 	"posts": [
 		{
+			"id": 1,
+			"title": "t fits the screen",
+			"authorId": 2,
+			"text": "Aenean eu cursus purus, ut molestie odio. Maecenas in bibendum ipsum, nec mattis elit. Aliquam et lectus rhoncus, accumsan nunc in, pretium sem. Quisque tellus turpis, imperdiet non nibh eget, malesuada ultrices augue. Integer vitae aliquet eros. Ut eget gravida purus, quis tempor urna. Nullam condimentum lacinia urna, eu sodales arcu convallis non. Proin nulla elit, luctus eu nulla a, venenatis consectetur justo. Nullam ut urna auctor, hendrerit nunc eget, tincidunt est. Curabitur vestibulum urna non scelerisque congue. Donec quis ex malesuada, porttitor tellus vitae, mollis tellus. Mauris eleifend rutrum lorem eget feugiat. Curabitur lobortis tellus in augue commodo, ac tempus justo ultrices."
+		},
+		{
 			"id": 3,
 			"title": "An awesome post",
 			"authorId": 4,
